@@ -1,0 +1,37 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+!backend/.env.example
+
+# Frontend (Vite + Vue)
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+.npm-cache/
+*.tsbuildinfo
+
+# Backend (Python)
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs and coverage
+*.log
+.coverage
+.coverage.*
+coverage/
+htmlcov/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

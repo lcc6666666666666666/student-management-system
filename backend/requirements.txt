@@ -1,0 +1,8 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.0
+SQLAlchemy==2.0.39
+PyMySQL==1.1.1
+pydantic-settings==2.8.1
+PyJWT==2.10.1
+python-multipart==0.0.20
+email-validator==2.2.0
