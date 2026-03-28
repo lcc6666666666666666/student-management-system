@@ -52,13 +52,6 @@ const menus = computed(() => getMenuRoutes(authStore.role))
           <span>{{ item.meta?.title }}</span>
         </el-menu-item>
       </el-menu>
-
-      <div class="sidebar__footer">
-        <div class="footer-card">
-          <div class="footer-card__label">课程设计演示</div>
-          <div class="footer-card__value">Vue 3 + FastAPI + MySQL</div>
-        </div>
-      </div>
     </div>
   </aside>
 </template>

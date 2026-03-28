@@ -7,10 +7,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "教学管理系统 API"
     api_v1_prefix: str = "/api/v1"
-    secret_key: str = "teaching-management-secret-key"
+    secret_key: str
     access_token_expire_minutes: int = 24 * 60
-    database_url: str = "mysql+pymysql://root:123456@127.0.0.1:3306/teaching_management?charset=utf8mb4"
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://127.0.0.1:5173", "http://localhost:5173"])
+    database_url: str
+    cors_origins: str | list[str] = Field(default_factory=lambda: ["http://127.0.0.1:5173", "http://localhost:5173"])
     init_demo_data: bool = True
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)

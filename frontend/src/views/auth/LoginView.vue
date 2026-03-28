@@ -54,26 +54,10 @@ async function handleLogin() {
     <div class="login-page__glow login-page__glow--right" />
 
     <section class="login-hero">
-      <div class="login-hero__badge">课程设计演示项目</div>
       <h1>教学管理系统</h1>
       <p>
         面向数据库课程设计场景构建，完整覆盖学生选课、教师录入成绩、管理员课程维护和 SQL 应用展示。
       </p>
-
-      <div class="hero-feature-list">
-        <div class="hero-feature">
-          <strong>前后端分离</strong>
-          <span>Vue 3 + FastAPI + MySQL 8.0</span>
-        </div>
-        <div class="hero-feature">
-          <strong>三角色权限</strong>
-          <span>学生、教师、管理员分角色菜单与接口控制</span>
-        </div>
-        <div class="hero-feature">
-          <strong>可演示闭环</strong>
-          <span>真实接口联调、初始化数据、统计看板与反馈提示</span>
-        </div>
-      </div>
     </section>
 
     <section class="login-panel panel">
