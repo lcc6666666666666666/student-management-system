@@ -41,7 +41,6 @@ onMounted(loadData)
   <div class="page-view">
     <PageHero
       title="我的成绩"
-      description="学生可查看各门课程成绩录入状态与汇总指标，便于展示成绩管理闭环。"
       tag="学生端"
     />
 
@@ -68,7 +67,7 @@ onMounted(loadData)
           <el-table-column prop="status" label="状态" width="110" />
         </el-table>
       </template>
-      <EmptyState v-else title="暂无成绩数据" description="教师录入成绩后会在这里同步展示。" />
+      <EmptyState v-else title="暂无成绩数据" />
     </section>
   </div>
 </template>

@@ -60,6 +60,12 @@ const appChildren: RouteRecordRaw[] = [
     meta: { title: '课程管理', roles: ['admin'], menu: true, icon: 'Management' }
   },
   {
+    path: '/admin/departments',
+    name: 'admin-departments',
+    component: () => import('@/views/admin/DepartmentManagementView.vue'),
+    meta: { title: '院系管理', roles: ['admin'], menu: true, icon: 'OfficeBuilding' }
+  },
+  {
     path: '/admin/enrollments',
     name: 'admin-enrollments',
     component: () => import('@/views/admin/AdminEnrollmentManageView.vue'),

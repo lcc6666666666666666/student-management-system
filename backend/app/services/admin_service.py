@@ -10,6 +10,7 @@ from app.models.student import Student
 from app.models.teacher import Teacher
 from app.models.user import User
 from app.schemas.course import CourseCreate, CourseUpdate
+from app.schemas.department import DepartmentCreate, DepartmentUpdate
 from app.services.course_service import list_courses
 from app.services.enrollment_service import assign_course_by_admin, drop_course_by_admin
 from app.services.student_service import _get_student_by_id, list_student_courses_by_student_id
@@ -33,6 +34,63 @@ def _validate_course_refs(db: Session, teacher_id: int, department_id: int | Non
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="所属院系不存在")
 
 
+def _get_department_by_id(db: Session, department_id: int) -> Department:
+    department = db.scalar(select(Department).where(Department.id == department_id))
+    if not department:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="院系不存在")
+    return department
+
+
+def _normalize_department_payload(payload: DepartmentCreate | DepartmentUpdate) -> tuple[str, str, str | None]:
+    name = payload.name.strip()
+    code = payload.code.strip()
+    description = payload.description.strip() if payload.description else None
+    if not name:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="院系名称不能为空")
+    if not code:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="院系编码不能为空")
+    return name, code, description or None
+
+
+def _validate_department_uniqueness(db: Session, name: str, code: str, exclude_id: int | None = None):
+    name_stmt = select(Department).where(Department.name == name)
+    code_stmt = select(Department).where(Department.code == code)
+    if exclude_id is not None:
+        name_stmt = name_stmt.where(Department.id != exclude_id)
+        code_stmt = code_stmt.where(Department.id != exclude_id)
+
+    if db.scalar(name_stmt):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="院系名称已存在")
+    if db.scalar(code_stmt):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="院系编码已存在")
+
+
+def _build_department_count_maps(db: Session, department_ids: list[int]) -> tuple[dict[int, int], dict[int, int], dict[int, int]]:
+    if not department_ids:
+        return {}, {}, {}
+
+    student_rows = db.execute(
+        select(Student.department_id, func.count(Student.id))
+        .where(Student.department_id.in_(department_ids))
+        .group_by(Student.department_id)
+    ).all()
+    teacher_rows = db.execute(
+        select(Teacher.department_id, func.count(Teacher.id))
+        .where(Teacher.department_id.in_(department_ids))
+        .group_by(Teacher.department_id)
+    ).all()
+    course_rows = db.execute(
+        select(Course.department_id, func.count(Course.id))
+        .where(Course.department_id.in_(department_ids))
+        .group_by(Course.department_id)
+    ).all()
+
+    student_map = {int(row[0]): int(row[1]) for row in student_rows if row[0] is not None}
+    teacher_map = {int(row[0]): int(row[1]) for row in teacher_rows if row[0] is not None}
+    course_map = {int(row[0]): int(row[1]) for row in course_rows if row[0] is not None}
+    return student_map, teacher_map, course_map
+
+
 def get_admin_profile(db: Session, user_id: int) -> dict:
     admin = _get_admin_by_user_id(db, user_id)
     return {
@@ -45,6 +103,75 @@ def get_admin_profile(db: Session, user_id: int) -> dict:
         "admin_no": admin.admin_no,
         "level": admin.level,
     }
+
+
+def list_departments_for_admin(db: Session, page: int, page_size: int, keyword: str | None) -> dict:
+    stmt = select(Department).order_by(Department.id.asc())
+    if keyword:
+        like_keyword = f"%{keyword.strip()}%"
+        stmt = stmt.where(or_(Department.name.like(like_keyword), Department.code.like(like_keyword)))
+
+    total = db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    departments = db.scalars(stmt.offset((page - 1) * page_size).limit(page_size)).all()
+    department_ids = [department.id for department in departments]
+    student_map, teacher_map, course_map = _build_department_count_maps(db, department_ids)
+
+    items = [
+        {
+            "id": department.id,
+            "name": department.name,
+            "code": department.code,
+            "description": department.description,
+            "created_at": department.created_at.isoformat() if department.created_at else None,
+            "student_count": student_map.get(department.id, 0),
+            "teacher_count": teacher_map.get(department.id, 0),
+            "course_count": course_map.get(department.id, 0),
+        }
+        for department in departments
+    ]
+    return {"total": total, "page": page, "page_size": page_size, "items": items}
+
+
+def create_department_by_admin(db: Session, payload: DepartmentCreate) -> dict:
+    name, code, description = _normalize_department_payload(payload)
+    _validate_department_uniqueness(db, name, code)
+
+    department = Department(name=name, code=code, description=description)
+    db.add(department)
+    db.commit()
+    db.refresh(department)
+    return {"id": department.id}
+
+
+def update_department_by_admin(db: Session, department_id: int, payload: DepartmentUpdate) -> dict:
+    department = _get_department_by_id(db, department_id)
+    name, code, description = _normalize_department_payload(payload)
+    _validate_department_uniqueness(db, name, code, exclude_id=department_id)
+
+    department.name = name
+    department.code = code
+    department.description = description
+    db.commit()
+    db.refresh(department)
+    return {"id": department.id}
+
+
+def delete_department_by_admin(db: Session, department_id: int) -> dict:
+    department = _get_department_by_id(db, department_id)
+
+    student_count = db.scalar(select(func.count(Student.id)).where(Student.department_id == department_id)) or 0
+    teacher_count = db.scalar(select(func.count(Teacher.id)).where(Teacher.department_id == department_id)) or 0
+    course_count = db.scalar(select(func.count(Course.id)).where(Course.department_id == department_id)) or 0
+
+    if student_count or teacher_count or course_count:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="当前院系已关联学生、教师或课程，不能删除",
+        )
+
+    db.delete(department)
+    db.commit()
+    return {"id": department_id}
 
 
 def list_students_for_admin(db: Session, page: int, page_size: int, keyword: str | None) -> dict:
@@ -190,6 +317,36 @@ def delete_course_by_admin(db: Session, course_id: int) -> dict:
     db.delete(course)
     db.commit()
     return {"id": course_id}
+
+
+def get_department_statistics_overview(db: Session) -> dict:
+    departments = db.scalars(select(Department).order_by(Department.id.asc())).all()
+    department_ids = [department.id for department in departments]
+    student_map, teacher_map, course_map = _build_department_count_maps(db, department_ids)
+
+    hot_departments = [
+        {
+            "department_id": department.id,
+            "name": department.name,
+            "code": department.code,
+            "student_count": student_map.get(department.id, 0),
+            "teacher_count": teacher_map.get(department.id, 0),
+            "course_count": course_map.get(department.id, 0),
+            "total_related": student_map.get(department.id, 0) + teacher_map.get(department.id, 0) + course_map.get(department.id, 0),
+        }
+        for department in departments
+    ]
+    hot_departments.sort(key=lambda item: (-item["total_related"], -item["course_count"], item["department_id"]))
+
+    return {
+        "summary": {
+            "total_departments": len(departments),
+            "assigned_students": int(sum(student_map.values())),
+            "assigned_teachers": int(sum(teacher_map.values())),
+            "assigned_courses": int(sum(course_map.values())),
+        },
+        "hot_departments": hot_departments[:6],
+    }
 
 
 def get_course_statistics_overview(db: Session) -> dict:

@@ -85,7 +85,6 @@ onMounted(loadData)
   <div class="page-view">
     <PageHero
       title="课程列表"
-      description="查看开放课程、检索课程信息，并完成在线选课与退课。详情面板会同步展示课程时间安排。"
       tag="学生端"
     >
       <el-button type="primary" @click="loadData">刷新列表</el-button>
@@ -162,7 +161,7 @@ onMounted(loadData)
           @change="loadData"
         />
       </template>
-      <EmptyState v-else title="没有匹配课程" description="可以调整筛选条件，或确认后端初始化数据已导入。" />
+      <EmptyState v-else title="没有匹配课程" />
     </section>
 
     <el-drawer v-model="detailVisible" title="课程详情" size="520px">
@@ -197,7 +196,7 @@ onMounted(loadData)
                 <div>{{ schedule.location }}</div>
               </div>
             </div>
-            <el-empty v-else description="该课程暂未配置时间安排" />
+            <el-empty v-else />
           </section>
         </template>
       </div>

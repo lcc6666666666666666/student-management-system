@@ -6,6 +6,7 @@ import {
   HomeFilled,
   Management,
   Notebook,
+  OfficeBuilding,
   Reading,
   Tickets,
   User,
@@ -31,6 +32,7 @@ const iconMap = {
   Reading,
   EditPen,
   Management,
+  OfficeBuilding,
   User
 }
 

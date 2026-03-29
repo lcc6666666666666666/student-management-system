@@ -223,6 +223,35 @@ export interface AdminCourseStatsOverview {
   }>
 }
 
+export interface DepartmentItem {
+  id: number
+  name: string
+  code: string
+  description?: string | null
+  created_at?: string | null
+  student_count: number
+  teacher_count: number
+  course_count: number
+}
+
+export interface AdminDepartmentStatsOverview {
+  summary: {
+    total_departments: number
+    assigned_students: number
+    assigned_teachers: number
+    assigned_courses: number
+  }
+  hot_departments: Array<{
+    department_id: number
+    name: string
+    code: string
+    student_count: number
+    teacher_count: number
+    course_count: number
+    total_related: number
+  }>
+}
+
 export interface CourseFormOption {
   id: number
   name: string

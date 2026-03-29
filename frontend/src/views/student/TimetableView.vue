@@ -96,7 +96,6 @@ onMounted(async () => {
   <div class="page-view">
     <PageHero
       title="我的课表"
-      description="课表基于已选课程与课程时间安排生成。默认展示最新学期，并提供周表与明细双视图。"
       tag="学生端"
     >
       <el-select v-model="selectedTerm" placeholder="选择学期" clearable style="width: 220px" @change="handleTermChange">
@@ -146,10 +145,9 @@ onMounted(async () => {
         <EmptyState
           v-else
           title="当前学期没有可渲染的时间块"
-          description="可能该学期尚未选课，或者课程尚未配置时间安排。"
         />
       </template>
-      <EmptyState v-else title="暂无课表数据" description="如果你尚未选课，课表会在选课后自动生成。" />
+      <EmptyState v-else title="暂无课表数据" />
     </section>
 
     <section class="dual-grid" v-if="timetable">
@@ -170,7 +168,7 @@ onMounted(async () => {
             </div>
           </div>
         </div>
-        <EmptyState v-else title="暂无明细" description="当前学期尚无可展示的课表时间块。" />
+        <EmptyState v-else title="暂无明细" />
       </section>
 
       <section class="panel panel-inner">
@@ -185,7 +183,7 @@ onMounted(async () => {
             <div>{{ course.teacher_name }}</div>
           </div>
         </div>
-        <EmptyState v-else title="全部课程已排课" description="当前学期所有已选课程都配置了时间安排。" />
+        <EmptyState v-else title="全部课程已排课" />
       </section>
     </section>
   </div>

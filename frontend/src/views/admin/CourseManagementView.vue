@@ -338,7 +338,6 @@ onMounted(async () => {
   <div class="page-view">
     <PageHero
       title="课程管理"
-      description="管理员可以维护课程基础信息、查看选课统计，并直接维护每门课程的时间安排。"
       tag="管理员端"
     >
       <el-button type="primary" @click="openCreateDialog">新增课程</el-button>
@@ -408,7 +407,7 @@ onMounted(async () => {
           @change="loadData"
         />
       </template>
-      <EmptyState v-else title="当前没有课程数据" description="可以点击右上角新增课程，或检查数据库初始化结果。" />
+      <EmptyState v-else title="当前没有课程数据" />
     </section>
 
     <section class="panel panel-inner">
@@ -534,7 +533,7 @@ onMounted(async () => {
                 <div>{{ schedule.location }}</div>
               </div>
             </div>
-            <el-empty v-else description="该课程暂未配置时间安排" />
+            <el-empty v-else />
           </section>
         </template>
       </div>
@@ -570,7 +569,7 @@ onMounted(async () => {
             </el-table-column>
           </el-table>
         </template>
-        <EmptyState v-else title="暂无时间安排" description="点击右上角新增时间安排后会立即生效。" />
+        <EmptyState v-else title="暂无时间安排" />
       </section>
     </el-drawer>
 

@@ -71,7 +71,6 @@ onMounted(loadCourses)
   <div class="page-view">
     <PageHero
       title="成绩管理"
-      description="教师可查看所授课程学生名单、录入成绩并实时查看统计分析结果。"
       tag="教师端"
     >
       <el-select v-model="selectedCourseId" placeholder="请选择课程" style="width: 240px" :loading="courseLoading">
@@ -121,10 +120,10 @@ onMounted(loadCourses)
             </el-table-column>
           </el-table>
         </template>
-        <EmptyState v-else title="当前课程暂无学生" description="课程尚未有人选课，统计数据会在选课后自动变化。" />
+        <EmptyState v-else title="当前课程暂无学生" />
       </section>
     </template>
 
-    <EmptyState v-else-if="!courseLoading" title="暂无可管理课程" description="请先在授课课程中确认教师账号已绑定课程。" />
+    <EmptyState v-else-if="!courseLoading" title="暂无可管理课程" />
   </div>
 </template>

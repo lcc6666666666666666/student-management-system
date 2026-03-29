@@ -96,7 +96,6 @@ onMounted(loadProfile)
   <div class="page-view" v-loading="loading">
     <PageHero
       title="个人信息"
-      description="支持维护当前账号基础资料，不同角色会显示不同的档案字段与权限。"
       tag="资料中心"
     >
       <el-button v-if="role !== 'admin'" type="primary" :loading="saving" @click="handleSave">保存修改</el-button>
@@ -215,6 +214,6 @@ onMounted(loadProfile)
       </el-descriptions>
     </section>
 
-    <EmptyState v-else-if="!loading" title="未获取到档案信息" description="请检查当前账号与后端接口状态。" />
+    <EmptyState v-else-if="!loading" title="未获取到档案信息" />
   </div>
 </template>

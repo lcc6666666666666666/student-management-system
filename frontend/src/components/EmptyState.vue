@@ -1,14 +1,14 @@
 <script setup lang="ts">
 defineProps<{
   title: string
-  description: string
+  description?: string
 }>()
 </script>
 
 <template>
   <div class="empty-state panel empty-wrap">
     <h3>{{ title }}</h3>
-    <p>{{ description }}</p>
+    <p v-if="description">{{ description }}</p>
     <slot />
   </div>
 </template>

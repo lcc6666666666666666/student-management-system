@@ -2,12 +2,14 @@ import request from './request'
 
 import type {
   AdminCourseStatsOverview,
+  AdminDepartmentStatsOverview,
   AdminProfile,
   AdminStudentCoursesResponse,
   AdminStudentItem,
   CourseFormOption,
   CourseItem,
   CourseScheduleItem,
+  DepartmentItem,
   PageData
 } from '@/types'
 
@@ -33,6 +35,26 @@ export function deleteCourseApi(courseId: number) {
 
 export function fetchAdminCourseStatsApi() {
   return request.get<never, AdminCourseStatsOverview>('/admins/statistics/courses')
+}
+
+export function fetchAdminDepartmentsApi(params: Record<string, unknown>) {
+  return request.get<never, PageData<DepartmentItem>>('/admins/departments', { params })
+}
+
+export function createDepartmentApi(payload: Record<string, unknown>) {
+  return request.post('/admins/departments', payload)
+}
+
+export function updateDepartmentApi(departmentId: number, payload: Record<string, unknown>) {
+  return request.put(`/admins/departments/${departmentId}`, payload)
+}
+
+export function deleteDepartmentApi(departmentId: number) {
+  return request.delete(`/admins/departments/${departmentId}`)
+}
+
+export function fetchAdminDepartmentStatsApi() {
+  return request.get<never, AdminDepartmentStatsOverview>('/admins/statistics/departments')
 }
 
 export function fetchCourseFormOptionsApi() {

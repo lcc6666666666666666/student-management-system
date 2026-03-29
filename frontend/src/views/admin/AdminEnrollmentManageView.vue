@@ -158,7 +158,6 @@ onMounted(async () => {
   <div class="page-view">
     <PageHero
       title="代选课管理"
-      description="管理员可以搜索学生、查看其已选课程，并为其代选课或退课。后端会统一校验开放状态、容量和时间冲突。"
       tag="管理员端"
     />
 
@@ -206,7 +205,7 @@ onMounted(async () => {
             <div class="student-card__meta">已选课程 {{ student.selected_course_count }} 门</div>
           </button>
         </div>
-        <EmptyState v-else title="没有匹配学生" description="可以调整搜索条件后重试。" />
+        <EmptyState v-else title="没有匹配学生" />
 
         <el-pagination
           v-model:current-page="studentFilters.page"
@@ -243,9 +242,9 @@ onMounted(async () => {
               </div>
             </div>
           </div>
-          <EmptyState v-else title="该学生暂无已选课程" description="可以在下方课程列表中直接为其代选课。" />
+          <EmptyState v-else title="该学生暂无已选课程" />
         </template>
-        <EmptyState v-else title="请选择学生" description="从左侧选择一个学生后即可查看其已选课程。" />
+        <EmptyState v-else title="请选择学生" />
       </section>
     </section>
 
@@ -313,7 +312,7 @@ onMounted(async () => {
           @change="loadCourses"
         />
       </template>
-      <EmptyState v-else title="暂无可展示课程" description="可以调整筛选条件后重试。" />
+      <EmptyState v-else title="暂无可展示课程" />
     </section>
   </div>
 </template>

@@ -28,7 +28,6 @@ onMounted(loadData)
   <div class="page-view" v-loading="loading">
     <PageHero
       :title="`${authStore.user?.real_name || ''}，欢迎回来`"
-      description="这里集中展示当前角色最核心的教学管理数据，便于课程设计答辩时快速演示系统业务闭环。"
       tag="数据概览"
     >
       <el-button plain @click="loadData">刷新数据</el-button>
@@ -72,6 +71,6 @@ onMounted(loadData)
       </section>
     </div>
 
-    <EmptyState v-else-if="!loading" title="暂无仪表盘数据" description="请检查后端接口或刷新重试。" />
+    <EmptyState v-else-if="!loading" title="暂无仪表盘数据" />
   </div>
 </template>

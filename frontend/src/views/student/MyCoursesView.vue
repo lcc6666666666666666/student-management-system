@@ -44,7 +44,6 @@ onMounted(loadData)
   <div class="page-view">
     <PageHero
       title="我的课程"
-      description="集中查看当前已选课程、授课教师与选课状态，并支持对未出成绩课程执行退课。"
       tag="学生端"
     />
 
@@ -80,7 +79,7 @@ onMounted(loadData)
           </el-table-column>
         </el-table>
       </template>
-      <EmptyState v-else title="你还没有选课记录" description="进入课程列表页即可完成课程选择。" />
+      <EmptyState v-else title="你还没有选课记录" />
     </section>
   </div>
 </template>

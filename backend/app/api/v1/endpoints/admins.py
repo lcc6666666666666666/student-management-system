@@ -6,17 +6,23 @@ from app.core.deps import require_roles
 from app.core.response import success
 from app.models.enums import RoleEnum
 from app.schemas.course import CourseCreate, CourseScheduleCreate, CourseScheduleUpdate, CourseUpdate
+from app.schemas.department import DepartmentCreate, DepartmentUpdate
 from app.services.admin_service import (
     assign_course_to_student_by_admin,
     create_course_by_admin,
+    create_department_by_admin,
     delete_course_by_admin,
+    delete_department_by_admin,
     drop_course_from_student_by_admin,
     get_admin_profile,
     get_course_form_options,
     get_course_statistics_overview,
+    get_department_statistics_overview,
     get_student_courses_for_admin,
+    list_departments_for_admin,
     list_courses_for_admin,
     list_students_for_admin,
+    update_department_by_admin,
     update_course_by_admin,
 )
 from app.services.course_schedule_service import (
@@ -58,6 +64,45 @@ def admin_students(
     db: Session = Depends(get_db),
 ):
     return success(list_students_for_admin(db, page, page_size, keyword), "获取成功")
+
+
+@router.get("/departments", summary="管理员查看院系列表")
+def admin_departments(
+    keyword: str | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+    current_user=Depends(require_roles(RoleEnum.admin)),
+    db: Session = Depends(get_db),
+):
+    return success(list_departments_for_admin(db, page, page_size, keyword), "获取成功")
+
+
+@router.post("/departments", summary="管理员新增院系")
+def create_department(
+    payload: DepartmentCreate,
+    current_user=Depends(require_roles(RoleEnum.admin)),
+    db: Session = Depends(get_db),
+):
+    return success(create_department_by_admin(db, payload), "院系创建成功")
+
+
+@router.put("/departments/{department_id}", summary="管理员更新院系")
+def update_department(
+    department_id: int,
+    payload: DepartmentUpdate,
+    current_user=Depends(require_roles(RoleEnum.admin)),
+    db: Session = Depends(get_db),
+):
+    return success(update_department_by_admin(db, department_id, payload), "院系更新成功")
+
+
+@router.delete("/departments/{department_id}", summary="管理员删除院系")
+def delete_department(
+    department_id: int,
+    current_user=Depends(require_roles(RoleEnum.admin)),
+    db: Session = Depends(get_db),
+):
+    return success(delete_department_by_admin(db, department_id), "院系删除成功")
 
 
 @router.get("/students/{student_id}/courses", summary="管理员查看学生已选课程")
@@ -155,6 +200,11 @@ def admin_delete_course_schedule(
 @router.get("/statistics/courses", summary="管理员课程选课统计")
 def course_statistics(current_user=Depends(require_roles(RoleEnum.admin)), db: Session = Depends(get_db)):
     return success(get_course_statistics_overview(db), "获取成功")
+
+
+@router.get("/statistics/departments", summary="管理员院系统计")
+def department_statistics(current_user=Depends(require_roles(RoleEnum.admin)), db: Session = Depends(get_db)):
+    return success(get_department_statistics_overview(db), "获取成功")
 
 
 @router.get("/options/course-form", summary="课程表单基础数据")

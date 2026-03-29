@@ -40,7 +40,6 @@ onMounted(loadData)
   <div class="page-view">
     <PageHero
       title="授课课程"
-      description="教师可查看本人授课课程、课程容量、选课人数和平均成绩，并快速进入成绩管理。"
       tag="教师端"
     >
       <el-button type="primary" @click="loadData">刷新课程</el-button>
@@ -80,7 +79,7 @@ onMounted(loadData)
           </el-table-column>
         </el-table>
       </template>
-      <EmptyState v-else title="暂无授课课程" description="请确认教师账号是否已分配课程。" />
+      <EmptyState v-else title="暂无授课课程" />
     </section>
   </div>
 </template>

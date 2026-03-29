@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineProps<{
   title: string
-  description: string
+  description?: string
   tag?: string
 }>()
 </script>
@@ -11,7 +11,7 @@ defineProps<{
     <div class="page-hero__content">
       <div v-if="tag" class="page-hero__tag">{{ tag }}</div>
       <h1>{{ title }}</h1>
-      <p>{{ description }}</p>
+      <p v-if="description">{{ description }}</p>
     </div>
     <div class="page-hero__actions">
       <slot />
