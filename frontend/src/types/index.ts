@@ -43,6 +43,21 @@ export interface DashboardOverview {
   announcements: string[]
 }
 
+export interface CourseScheduleItem {
+  id: number
+  course_id: number
+  weekday: number
+  weekday_label: string
+  start_section: number
+  end_section: number
+  start_week: number
+  end_week: number
+  location: string
+  display_text: string
+  created_at?: string
+  updated_at?: string
+}
+
 export interface CourseItem {
   id: number
   course_code: string
@@ -60,6 +75,8 @@ export interface CourseItem {
   selected_count: number
   available_seats: number
   is_selected: boolean
+  schedule_count: number
+  schedules?: CourseScheduleItem[]
   score_stats?: {
     student_count: number
     avg_score?: number | null
@@ -214,4 +231,74 @@ export interface CourseFormOption {
   department_id?: number | null
   department_name?: string | null
   teacher_no?: string
+}
+
+export interface AdminStudentItem {
+  id: number
+  user_id: number
+  student_no: string
+  username: string
+  real_name: string
+  grade?: string | null
+  class_name?: string | null
+  department_name?: string | null
+  selected_course_count: number
+}
+
+export interface AdminStudentSummary {
+  id: number
+  student_no: string
+  real_name: string
+  username: string
+  grade?: string | null
+  class_name?: string | null
+  department_name?: string | null
+}
+
+export interface AdminStudentCoursesResponse {
+  student: AdminStudentSummary
+  total: number
+  items: StudentCourseItem[]
+}
+
+export interface TimetableEntry {
+  course_id: number
+  course_code: string
+  course_name: string
+  teacher_name: string
+  location: string
+  weekday: number
+  weekday_label: string
+  start_section: number
+  end_section: number
+  start_week: number
+  end_week: number
+  term: string
+}
+
+export interface TimetableWeekday {
+  value: number
+  label: string
+  items: TimetableEntry[]
+}
+
+export interface TimetableUnscheduledCourse {
+  course_id: number
+  course_code: string
+  course_name: string
+  teacher_name: string
+  term: string
+}
+
+export interface TimetableResponse {
+  term?: string | null
+  summary: {
+    total_courses: number
+    scheduled_courses: number
+    total_schedule_items: number
+    unscheduled_courses: number
+  }
+  weekdays: TimetableWeekday[]
+  items: TimetableEntry[]
+  unscheduled_courses: TimetableUnscheduledCourse[]
 }

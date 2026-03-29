@@ -2,6 +2,8 @@ DROP DATABASE IF EXISTS teaching_management;
 CREATE DATABASE teaching_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE teaching_management;
 
+DROP TABLE IF EXISTS enrollment_operation_log;
+DROP TABLE IF EXISTS course_schedule;
 DROP TABLE IF EXISTS enrollment;
 DROP TABLE IF EXISTS course;
 DROP TABLE IF EXISTS admin;
@@ -84,6 +86,27 @@ CREATE TABLE course (
     CONSTRAINT chk_course_capacity CHECK (capacity > 0)
 ) ENGINE=InnoDB;
 
+CREATE TABLE course_schedule (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    course_id INT NOT NULL,
+    weekday INT NOT NULL,
+    start_section INT NOT NULL,
+    end_section INT NOT NULL,
+    start_week INT NOT NULL,
+    end_week INT NOT NULL,
+    location VARCHAR(100) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_course_schedule_course FOREIGN KEY (course_id) REFERENCES course(id),
+    CONSTRAINT chk_course_schedule_weekday CHECK (weekday BETWEEN 1 AND 7),
+    CONSTRAINT chk_course_schedule_start_section CHECK (start_section BETWEEN 1 AND 20),
+    CONSTRAINT chk_course_schedule_end_section CHECK (end_section BETWEEN 1 AND 20),
+    CONSTRAINT chk_course_schedule_section_order CHECK (start_section <= end_section),
+    CONSTRAINT chk_course_schedule_start_week CHECK (start_week BETWEEN 1 AND 30),
+    CONSTRAINT chk_course_schedule_end_week CHECK (end_week BETWEEN 1 AND 30),
+    CONSTRAINT chk_course_schedule_week_order CHECK (start_week <= end_week)
+) ENGINE=InnoDB;
+
 CREATE TABLE enrollment (
     id INT PRIMARY KEY AUTO_INCREMENT,
     student_id INT NOT NULL,
@@ -97,13 +120,30 @@ CREATE TABLE enrollment (
     CONSTRAINT chk_score_range CHECK (score BETWEEN 0 AND 100 OR score IS NULL)
 ) ENGINE=InnoDB;
 
+CREATE TABLE enrollment_operation_log (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    student_id INT NOT NULL,
+    course_id INT NOT NULL,
+    operator_user_id INT NOT NULL,
+    operation_type ENUM('student_select', 'student_drop', 'admin_assign', 'admin_drop') NOT NULL,
+    reason VARCHAR(255) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_enrollment_log_student FOREIGN KEY (student_id) REFERENCES student(id),
+    CONSTRAINT fk_enrollment_log_course FOREIGN KEY (course_id) REFERENCES course(id),
+    CONSTRAINT fk_enrollment_log_operator FOREIGN KEY (operator_user_id) REFERENCES sys_user(id)
+) ENGINE=InnoDB;
+
 CREATE INDEX idx_user_role ON sys_user(role);
 CREATE INDEX idx_student_department ON student(department_id);
 CREATE INDEX idx_teacher_department ON teacher(department_id);
 CREATE INDEX idx_course_teacher ON course(teacher_id);
 CREATE INDEX idx_course_term_status ON course(term, status);
+CREATE INDEX idx_course_schedule_course ON course_schedule(course_id);
 CREATE INDEX idx_enrollment_student ON enrollment(student_id);
 CREATE INDEX idx_enrollment_course ON enrollment(course_id);
+CREATE INDEX idx_enrollment_log_student ON enrollment_operation_log(student_id);
+CREATE INDEX idx_enrollment_log_course ON enrollment_operation_log(course_id);
+CREATE INDEX idx_enrollment_log_operator ON enrollment_operation_log(operator_user_id);
 
 INSERT INTO department (name, code, description) VALUES
 ('计算机学院', 'CS', '负责软件、数据与人工智能方向教学'),
@@ -136,6 +176,14 @@ INSERT INTO course (course_code, name, credit, hours, capacity, term, status, de
 ('NW301', '计算机网络', 3.0, 40, 50, '2025-2026-2', 'closed', '课程已关闭选课，用于演示状态控制。', 1, 1),
 ('MA103', '高等数学实践', 4.0, 56, 80, '2025-2026-2', 'open', '通过建模案例训练数学分析能力。', 2, 2),
 ('DA204', '数据分析基础', 2.5, 32, 55, '2025-2026-2', 'open', '面向统计分析与可视化展示的基础课程。', 2, 2);
+
+INSERT INTO course_schedule (course_id, weekday, start_section, end_section, start_week, end_week, location) VALUES
+(1, 1, 1, 2, 1, 16, '博学楼 A101'),
+(1, 3, 3, 4, 1, 16, '博学楼 A101'),
+(2, 1, 3, 4, 1, 16, '博学楼 A202'),
+(3, 2, 1, 2, 1, 16, '网络实验室 1'),
+(4, 3, 1, 2, 1, 16, '理学楼 B301'),
+(5, 1, 1, 2, 1, 16, '理学楼 B402');
 
 INSERT INTO enrollment (student_id, course_id, score) VALUES
 (1, 1, 92),

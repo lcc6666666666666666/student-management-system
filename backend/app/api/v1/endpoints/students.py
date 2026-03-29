@@ -10,6 +10,7 @@ from app.services.student_service import (
     drop_course,
     enroll_course,
     get_student_profile,
+    get_student_timetable,
     list_student_courses,
     list_student_grades,
     update_student_profile,
@@ -35,6 +36,15 @@ def update_profile(
 @router.get("/courses", summary="获取学生已选课程")
 def my_courses(current_user=Depends(require_roles(RoleEnum.student)), db: Session = Depends(get_db)):
     return success(list_student_courses(db, current_user.id), "获取成功")
+
+
+@router.get("/timetable", summary="学生查看个人课表")
+def student_timetable(
+    term: str | None = None,
+    current_user=Depends(require_roles(RoleEnum.student)),
+    db: Session = Depends(get_db),
+):
+    return success(get_student_timetable(db, current_user.id, term), "获取成功")
 
 
 @router.post("/courses/{course_id}/enroll", summary="学生选课")

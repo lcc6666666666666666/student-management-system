@@ -14,7 +14,7 @@ from app.services.teacher_service import (
     update_score,
     update_teacher_profile,
 )
-
+#不是教师无法访问
 router = APIRouter(dependencies=[Depends(require_roles(RoleEnum.teacher))])
 
 
@@ -25,7 +25,7 @@ def teacher_profile(current_user=Depends(require_roles(RoleEnum.teacher)), db: S
 
 @router.put("/me/profile", summary="更新教师个人信息")
 def update_profile(
-    payload: TeacherProfileUpdate,
+    payload: TeacherProfileUpdate,#被解析成 TeacherProfileUpdate 这个 schema
     current_user=Depends(require_roles(RoleEnum.teacher)),
     db: Session = Depends(get_db),
 ):
@@ -49,7 +49,7 @@ def course_stats(course_id: int, current_user=Depends(require_roles(RoleEnum.tea
 
 @router.put("/enrollments/{enrollment_id}/score", summary="录入或修改成绩")
 def update_enrollment_score(
-    enrollment_id: int,
+    enrollment_id: int,#不是按 student_id 改，而是按 enrollment_id 改
     payload: ScoreUpdateRequest,
     current_user=Depends(require_roles(RoleEnum.teacher)),
     db: Session = Depends(get_db),

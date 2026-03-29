@@ -1,9 +1,21 @@
 from app.models.admin import Admin
 from app.models.course import Course
+from app.models.course_schedule import CourseSchedule
 from app.models.department import Department
 from app.models.enrollment import Enrollment
+from app.models.enrollment_operation_log import EnrollmentOperationLog
 from app.models.student import Student
 from app.models.teacher import Teacher
 from app.models.user import User
 
-__all__ = ["Admin", "Course", "Department", "Enrollment", "Student", "Teacher", "User"]
+__all__ = [
+    "Admin",
+    "Course",
+    "CourseSchedule",
+    "Department",
+    "Enrollment",
+    "EnrollmentOperationLog",
+    "Student",
+    "Teacher",
+    "User",
+]

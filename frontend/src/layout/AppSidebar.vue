@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  Calendar,
   DataLine,
   EditPen,
   HomeFilled,
@@ -7,6 +8,7 @@ import {
   Notebook,
   Reading,
   Tickets,
+  User,
   UserFilled
 } from '@element-plus/icons-vue'
 import { computed } from 'vue'
@@ -24,10 +26,12 @@ const iconMap = {
   UserFilled,
   Tickets,
   Notebook,
+  Calendar,
   DataLine,
   Reading,
   EditPen,
-  Management
+  Management,
+  User
 }
 
 const menus = computed(() => getMenuRoutes(authStore.role))
@@ -116,23 +120,6 @@ const menus = computed(() => getMenuRoutes(authStore.role))
 :deep(.el-menu-item.is-active) {
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
-}
-
-.footer-card {
-  padding: 16px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.footer-card__label {
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 12px;
-}
-
-.footer-card__value {
-  margin-top: 8px;
-  font-size: 15px;
-  font-weight: 700;
 }
 
 @media (max-width: 1080px) {

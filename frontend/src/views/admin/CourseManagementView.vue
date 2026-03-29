@@ -5,17 +5,21 @@ import { computed, onMounted, reactive, ref } from 'vue'
 
 import {
   createCourseApi,
+  createCourseScheduleApi,
   deleteCourseApi,
+  deleteCourseScheduleApi,
+  fetchAdminCourseSchedulesApi,
   fetchAdminCourseStatsApi,
   fetchAdminCoursesApi,
   fetchCourseFormOptionsApi,
-  updateCourseApi
+  updateCourseApi,
+  updateCourseScheduleApi
 } from '@/api/admin'
 import { fetchCourseDetailApi } from '@/api/courses'
 import EmptyState from '@/components/EmptyState.vue'
 import PageHero from '@/components/PageHero.vue'
 import StatCard from '@/components/StatCard.vue'
-import type { AdminCourseStatsOverview, CourseFormOption, CourseItem, PageData } from '@/types'
+import type { AdminCourseStatsOverview, CourseFormOption, CourseItem, CourseScheduleItem, PageData } from '@/types'
 import { getStatusLabel } from '@/utils/role'
 
 const loading = ref(false)
@@ -24,6 +28,23 @@ const dialogVisible = ref(false)
 const drawerVisible = ref(false)
 const detailLoading = ref(false)
 const formRef = ref<FormInstance>()
+
+const scheduleDrawerVisible = ref(false)
+const scheduleDialogVisible = ref(false)
+const scheduleLoading = ref(false)
+const scheduleSaving = ref(false)
+const scheduleFormRef = ref<FormInstance>()
+const scheduleCourseId = ref<number | null>(null)
+
+const weekdayOptions = [
+  { label: '周一', value: 1 },
+  { label: '周二', value: 2 },
+  { label: '周三', value: 3 },
+  { label: '周四', value: 4 },
+  { label: '周五', value: 5 },
+  { label: '周六', value: 6 },
+  { label: '周日', value: 7 }
+]
 
 const filters = reactive({
   keyword: '',
@@ -77,6 +98,24 @@ const form = reactive({
 
 const detail = ref<CourseItem | null>(null)
 
+const scheduleData = ref<{
+  course: { id: number; course_code: string; name: string; term: string } | null
+  items: CourseScheduleItem[]
+}>({
+  course: null,
+  items: []
+})
+
+const scheduleForm = reactive({
+  id: 0,
+  weekday: 1,
+  start_section: 1,
+  end_section: 2,
+  start_week: 1,
+  end_week: 16,
+  location: ''
+})
+
 const rules: FormRules<typeof form> = {
   course_code: [{ required: true, message: '请输入课程编号', trigger: 'blur' }],
   name: [{ required: true, message: '请输入课程名称', trigger: 'blur' }],
@@ -86,15 +125,22 @@ const rules: FormRules<typeof form> = {
   capacity: [{ required: true, message: '请输入课程容量', trigger: 'change' }]
 }
 
+const scheduleRules: FormRules<typeof scheduleForm> = {
+  weekday: [{ required: true, message: '请选择星期', trigger: 'change' }],
+  start_section: [{ required: true, message: '请输入开始节次', trigger: 'change' }],
+  end_section: [{ required: true, message: '请输入结束节次', trigger: 'change' }],
+  start_week: [{ required: true, message: '请输入起始周', trigger: 'change' }],
+  end_week: [{ required: true, message: '请输入结束周', trigger: 'change' }],
+  location: [{ required: true, message: '请输入上课地点', trigger: 'blur' }]
+}
+
 const dialogTitle = computed(() => (form.id ? '编辑课程' : '新增课程'))
+const scheduleDialogTitle = computed(() => (scheduleForm.id ? '编辑时间安排' : '新增时间安排'))
 
 async function loadData() {
   loading.value = true
   try {
-    const [listData, statsData] = await Promise.all([
-      fetchAdminCoursesApi(filters),
-      fetchAdminCourseStatsApi()
-    ])
+    const [listData, statsData] = await Promise.all([fetchAdminCoursesApi(filters), fetchAdminCourseStatsApi()])
     pageData.value = listData
     stats.value = statsData
   } finally {
@@ -104,6 +150,22 @@ async function loadData() {
 
 async function loadOptions() {
   options.value = await fetchCourseFormOptionsApi()
+}
+
+async function loadCourseSchedules(courseId: number) {
+  scheduleLoading.value = true
+  try {
+    scheduleData.value = await fetchAdminCourseSchedulesApi(courseId)
+    scheduleCourseId.value = courseId
+  } finally {
+    scheduleLoading.value = false
+  }
+}
+
+async function refreshCourseDetailIfNeeded(courseId: number) {
+  if (detail.value?.id === courseId) {
+    detail.value = await fetchCourseDetailApi(courseId)
+  }
 }
 
 function resetForm() {
@@ -118,6 +180,16 @@ function resetForm() {
   form.description = ''
   form.teacher_id = undefined
   form.department_id = undefined
+}
+
+function resetScheduleForm() {
+  scheduleForm.id = 0
+  scheduleForm.weekday = 1
+  scheduleForm.start_section = 1
+  scheduleForm.end_section = 2
+  scheduleForm.start_week = 1
+  scheduleForm.end_week = 16
+  scheduleForm.location = ''
 }
 
 function openCreateDialog() {
@@ -144,6 +216,7 @@ async function submitForm() {
   if (!formRef.value) return
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) return
+
   saving.value = true
   try {
     const payload = {
@@ -173,7 +246,7 @@ async function submitForm() {
 }
 
 async function handleDelete(row: CourseItem) {
-  await ElMessageBox.confirm(`确认删除《${row.name}》吗？若已有选课记录将被后端拦截。`, '删除确认', { type: 'warning' })
+  await ElMessageBox.confirm(`确认删除《${row.name}》吗？若已有选课记录会被后端拦截。`, '删除确认', { type: 'warning' })
   await deleteCourseApi(row.id)
   ElMessage.success('课程删除成功')
   await loadData()
@@ -186,6 +259,65 @@ async function openDetail(row: CourseItem) {
     detail.value = await fetchCourseDetailApi(row.id)
   } finally {
     detailLoading.value = false
+  }
+}
+
+async function openScheduleManager(row: CourseItem) {
+  scheduleDrawerVisible.value = true
+  await loadCourseSchedules(row.id)
+}
+
+function openCreateSchedule() {
+  resetScheduleForm()
+  scheduleDialogVisible.value = true
+}
+
+function openEditSchedule(item: CourseScheduleItem) {
+  scheduleForm.id = item.id
+  scheduleForm.weekday = item.weekday
+  scheduleForm.start_section = item.start_section
+  scheduleForm.end_section = item.end_section
+  scheduleForm.start_week = item.start_week
+  scheduleForm.end_week = item.end_week
+  scheduleForm.location = item.location
+  scheduleDialogVisible.value = true
+}
+
+async function submitSchedule() {
+  if (!scheduleFormRef.value || !scheduleCourseId.value) return
+  const valid = await scheduleFormRef.value.validate().catch(() => false)
+  if (!valid) return
+
+  scheduleSaving.value = true
+  try {
+    const payload = {
+      weekday: scheduleForm.weekday,
+      start_section: scheduleForm.start_section,
+      end_section: scheduleForm.end_section,
+      start_week: scheduleForm.start_week,
+      end_week: scheduleForm.end_week,
+      location: scheduleForm.location
+    }
+    if (scheduleForm.id) {
+      await updateCourseScheduleApi(scheduleForm.id, payload)
+      ElMessage.success('时间安排更新成功')
+    } else {
+      await createCourseScheduleApi(scheduleCourseId.value, payload)
+      ElMessage.success('时间安排创建成功')
+    }
+    scheduleDialogVisible.value = false
+    await Promise.all([loadCourseSchedules(scheduleCourseId.value), loadData(), refreshCourseDetailIfNeeded(scheduleCourseId.value)])
+  } finally {
+    scheduleSaving.value = false
+  }
+}
+
+async function handleDeleteSchedule(item: CourseScheduleItem) {
+  await ElMessageBox.confirm(`确认删除该时间安排吗？\n${item.display_text}`, '删除确认', { type: 'warning' })
+  await deleteCourseScheduleApi(item.id)
+  ElMessage.success('时间安排删除成功')
+  if (scheduleCourseId.value) {
+    await Promise.all([loadCourseSchedules(scheduleCourseId.value), loadData(), refreshCourseDetailIfNeeded(scheduleCourseId.value)])
   }
 }
 
@@ -206,17 +338,17 @@ onMounted(async () => {
   <div class="page-view">
     <PageHero
       title="课程管理"
-      description="管理员可以进行课程信息增删改查，查看课程选课人数、容量占用率，并维护课程开放状态。"
+      description="管理员可以维护课程基础信息、查看选课统计，并直接维护每门课程的时间安排。"
       tag="管理员端"
     >
       <el-button type="primary" @click="openCreateDialog">新增课程</el-button>
     </PageHero>
 
     <div class="card-grid">
-      <StatCard title="课程总数" :value="stats.summary.total_courses" desc="系统课程总量" theme="primary" />
-      <StatCard title="开放课程" :value="stats.summary.open_courses" desc="当前允许学生选课的课程" theme="emerald" />
+      <StatCard title="课程总数" :value="stats.summary.total_courses" desc="系统当前课程总量" theme="primary" />
+      <StatCard title="开放课程" :value="stats.summary.open_courses" desc="允许学生选课的课程数量" theme="emerald" />
       <StatCard title="选课总数" :value="stats.summary.total_enrollments" desc="所有课程选课记录总量" theme="amber" />
-      <StatCard title="平均容量" :value="stats.summary.average_capacity ?? '--'" desc="全部课程平均容量配置" theme="violet" />
+      <StatCard title="平均容量" :value="stats.summary.average_capacity ?? '--'" desc="全体课程的平均容量配置" theme="violet" />
     </div>
 
     <section class="panel panel-inner">
@@ -227,7 +359,7 @@ onMounted(async () => {
             <el-option label="开放中" value="open" />
             <el-option label="已关闭" value="closed" />
           </el-select>
-          <el-input v-model="filters.term" placeholder="输入学期，如 2025-2026-2" clearable />
+          <el-input v-model="filters.term" placeholder="输入学期，例如 2025-2026-2" clearable />
         </div>
         <div class="table-actions">
           <el-button @click="resetFilters">重置</el-button>
@@ -243,7 +375,8 @@ onMounted(async () => {
           <el-table-column prop="name" label="课程名称" min-width="180" />
           <el-table-column prop="teacher_name" label="授课教师" min-width="110" />
           <el-table-column prop="department_name" label="所属院系" min-width="120" />
-          <el-table-column prop="term" label="学期" min-width="120" />
+          <el-table-column prop="term" label="学期" min-width="130" />
+          <el-table-column prop="schedule_count" label="时间安排" width="100" />
           <el-table-column label="容量/已选" width="120">
             <template #default="{ row }">{{ row.capacity }} / {{ row.selected_count }}</template>
           </el-table-column>
@@ -254,10 +387,11 @@ onMounted(async () => {
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" min-width="220" fixed="right">
+          <el-table-column label="操作" min-width="280" fixed="right">
             <template #default="{ row }">
               <div class="table-actions">
                 <el-button link type="primary" @click="openDetail(row)">详情</el-button>
+                <el-button link type="success" @click="openScheduleManager(row)">时间安排</el-button>
                 <el-button link type="warning" @click="openEditDialog(row)">编辑</el-button>
                 <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
               </div>
@@ -279,7 +413,7 @@ onMounted(async () => {
 
     <section class="panel panel-inner">
       <h3 class="section-title">热门课程占用率</h3>
-      <p class="section-subtitle">用于展示课程容量和选课人数统计结果</p>
+      <p class="section-subtitle">展示课程容量与选课人数的统计结果</p>
       <div class="highlight-list" style="margin-top: 18px">
         <div v-for="item in stats.hot_courses" :key="item.course_id" class="highlight-item">
           <div>
@@ -373,7 +507,7 @@ onMounted(async () => {
       </template>
     </el-dialog>
 
-    <el-drawer v-model="drawerVisible" title="课程详情" size="480px">
+    <el-drawer v-model="drawerVisible" title="课程详情" size="520px">
       <div v-loading="detailLoading">
         <template v-if="detail">
           <el-descriptions :column="1" border>
@@ -387,8 +521,114 @@ onMounted(async () => {
             <el-descriptions-item label="已选人数">{{ detail.selected_count }}</el-descriptions-item>
             <el-descriptions-item label="课程描述">{{ detail.description || '暂无描述' }}</el-descriptions-item>
           </el-descriptions>
+
+          <section class="schedule-section">
+            <h3 class="section-title">时间安排</h3>
+            <p class="section-subtitle">课程详情中同步展示当前有效的时间安排</p>
+            <div v-if="detail.schedules?.length" class="highlight-list" style="margin-top: 16px">
+              <div v-for="schedule in detail.schedules" :key="schedule.id" class="highlight-item">
+                <div>
+                  <strong>{{ schedule.weekday_label }}</strong>
+                  <div class="section-subtitle">第 {{ schedule.start_section }}-{{ schedule.end_section }} 节 / 第 {{ schedule.start_week }}-{{ schedule.end_week }} 周</div>
+                </div>
+                <div>{{ schedule.location }}</div>
+              </div>
+            </div>
+            <el-empty v-else description="该课程暂未配置时间安排" />
+          </section>
         </template>
       </div>
     </el-drawer>
+
+    <el-drawer v-model="scheduleDrawerVisible" title="课程时间安排管理" size="720px">
+      <div class="schedule-toolbar">
+        <div>
+          <h3 class="section-title">{{ scheduleData.course?.name || '课程时间安排' }}</h3>
+          <p class="section-subtitle">{{ scheduleData.course?.course_code }} / {{ scheduleData.course?.term }}</p>
+        </div>
+        <el-button type="primary" @click="openCreateSchedule">新增时间安排</el-button>
+      </div>
+
+      <section class="panel panel-inner" style="margin-top: 18px" v-loading="scheduleLoading">
+        <template v-if="scheduleData.items.length">
+          <el-table :data="scheduleData.items">
+            <el-table-column prop="weekday_label" label="星期" width="90" />
+            <el-table-column label="节次" width="130">
+              <template #default="{ row }">第 {{ row.start_section }}-{{ row.end_section }} 节</template>
+            </el-table-column>
+            <el-table-column label="周次" width="140">
+              <template #default="{ row }">第 {{ row.start_week }}-{{ row.end_week }} 周</template>
+            </el-table-column>
+            <el-table-column prop="location" label="地点" min-width="150" />
+            <el-table-column label="操作" width="150" fixed="right">
+              <template #default="{ row }">
+                <div class="table-actions">
+                  <el-button link type="warning" @click="openEditSchedule(row)">编辑</el-button>
+                  <el-button link type="danger" @click="handleDeleteSchedule(row)">删除</el-button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+        </template>
+        <EmptyState v-else title="暂无时间安排" description="点击右上角新增时间安排后会立即生效。" />
+      </section>
+    </el-drawer>
+
+    <el-dialog v-model="scheduleDialogVisible" :title="scheduleDialogTitle" width="560px" destroy-on-close>
+      <el-form ref="scheduleFormRef" :model="scheduleForm" :rules="scheduleRules" label-position="top">
+        <el-row :gutter="16">
+          <el-col :xs="24" :md="12">
+            <el-form-item label="星期" prop="weekday">
+              <el-select v-model="scheduleForm.weekday" placeholder="请选择星期">
+                <el-option v-for="item in weekdayOptions" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :md="12">
+            <el-form-item label="上课地点" prop="location">
+              <el-input v-model="scheduleForm.location" placeholder="例如 博学楼 A101" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :md="6">
+            <el-form-item label="开始节次" prop="start_section">
+              <el-input-number v-model="scheduleForm.start_section" :min="1" :max="20" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :md="6">
+            <el-form-item label="结束节次" prop="end_section">
+              <el-input-number v-model="scheduleForm.end_section" :min="1" :max="20" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :md="6">
+            <el-form-item label="起始周" prop="start_week">
+              <el-input-number v-model="scheduleForm.start_week" :min="1" :max="30" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :md="6">
+            <el-form-item label="结束周" prop="end_week">
+              <el-input-number v-model="scheduleForm.end_week" :min="1" :max="30" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="scheduleDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="scheduleSaving" @click="submitSchedule">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.schedule-section {
+  margin-top: 22px;
+}
+
+.schedule-toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+</style>

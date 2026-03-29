@@ -1,6 +1,6 @@
 import request from './request'
 
-import type { GradeItem, GradeSummary, StudentCourseItem, StudentProfile } from '@/types'
+import type { GradeItem, GradeSummary, StudentCourseItem, StudentProfile, TimetableResponse } from '@/types'
 
 export function fetchStudentProfileApi() {
   return request.get<never, StudentProfile>('/students/me/profile')
@@ -24,4 +24,8 @@ export function dropCourseApi(courseId: number) {
 
 export function fetchStudentGradesApi() {
   return request.get<never, { summary: GradeSummary; items: GradeItem[] }>('/students/grades')
+}
+
+export function fetchStudentTimetableApi(params?: { term?: string }) {
+  return request.get<never, TimetableResponse>('/students/timetable', { params })
 }

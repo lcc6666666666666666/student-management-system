@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.security import get_password_hash
 from app.models.admin import Admin
 from app.models.course import Course
+from app.models.course_schedule import CourseSchedule
 from app.models.department import Department
 from app.models.enrollment import Enrollment
 from app.models.enums import CourseStatusEnum, RoleEnum
@@ -58,6 +59,16 @@ def init_demo_data(db: Session):
     db.add_all(courses)
     db.flush()
 
+    schedules = [
+        CourseSchedule(course_id=courses[0].id, weekday=1, start_section=1, end_section=2, start_week=1, end_week=16, location="博学楼 A101"),
+        CourseSchedule(course_id=courses[0].id, weekday=3, start_section=3, end_section=4, start_week=1, end_week=16, location="博学楼 A101"),
+        CourseSchedule(course_id=courses[1].id, weekday=1, start_section=3, end_section=4, start_week=1, end_week=16, location="博学楼 A202"),
+        CourseSchedule(course_id=courses[2].id, weekday=2, start_section=1, end_section=2, start_week=1, end_week=16, location="网络实验室 1"),
+        CourseSchedule(course_id=courses[3].id, weekday=3, start_section=1, end_section=2, start_week=1, end_week=16, location="理学楼 B301"),
+        CourseSchedule(course_id=courses[4].id, weekday=1, start_section=1, end_section=2, start_week=1, end_week=16, location="理学楼 B402"),
+    ]
+    db.add_all(schedules)
+
     enrollments = [
         Enrollment(student_id=students[0].id, course_id=courses[0].id, score=92),
         Enrollment(student_id=students[0].id, course_id=courses[1].id, score=None),
@@ -67,4 +78,5 @@ def init_demo_data(db: Session):
         Enrollment(student_id=students[2].id, course_id=courses[4].id, score=None),
     ]
     db.add_all(enrollments)
+    db.flush()
     db.commit()

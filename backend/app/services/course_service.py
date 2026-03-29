@@ -2,13 +2,14 @@ from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy import Select, func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.course import Course
 from app.models.enrollment import Enrollment
 from app.models.enums import RoleEnum
 from app.models.teacher import Teacher
 from app.models.user import User
+from app.services.course_schedule_service import serialize_course_schedules
 
 
 def _apply_course_filters(stmt: Select, keyword: str | None, status_text: str | None, term: str | None) -> Select:
@@ -23,12 +24,17 @@ def _apply_course_filters(stmt: Select, keyword: str | None, status_text: str | 
 
 
 def _paginate_courses(db: Session, stmt: Select, page: int, page_size: int) -> tuple[int, list[Course]]:
-    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    total = db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
     courses = db.scalars(stmt.offset((page - 1) * page_size).limit(page_size)).unique().all()
     return total, list(courses)
 
 
-def _build_course_items(db: Session, courses: list[Course], current_user: User | None = None) -> list[dict]:
+def _build_course_items(
+    db: Session,
+    courses: list[Course],
+    current_user: User | None = None,
+    include_schedules: bool = False,
+) -> list[dict]:
     if not courses:
         return []
 
@@ -56,26 +62,28 @@ def _build_course_items(db: Session, courses: list[Course], current_user: User |
         selected_count = int(selected_map.get(course.id, 0))
         teacher_name = course.teacher.user.real_name if course.teacher and course.teacher.user else "-"
         department_name = course.department.name if course.department else None
-        items.append(
-            {
-                "id": course.id,
-                "course_code": course.course_code,
-                "name": course.name,
-                "credit": float(course.credit),
-                "hours": course.hours,
-                "capacity": course.capacity,
-                "term": course.term,
-                "status": course.status.value,
-                "description": course.description,
-                "teacher_id": course.teacher_id,
-                "teacher_name": teacher_name,
-                "department_id": course.department_id,
-                "department_name": department_name,
-                "selected_count": selected_count,
-                "available_seats": max(course.capacity - selected_count, 0),
-                "is_selected": course.id in selected_ids,
-            }
-        )
+        item = {
+            "id": course.id,
+            "course_code": course.course_code,
+            "name": course.name,
+            "credit": float(course.credit),
+            "hours": course.hours,
+            "capacity": course.capacity,
+            "term": course.term,
+            "status": course.status.value,
+            "description": course.description,
+            "teacher_id": course.teacher_id,
+            "teacher_name": teacher_name,
+            "department_id": course.department_id,
+            "department_name": department_name,
+            "selected_count": selected_count,
+            "available_seats": max(course.capacity - selected_count, 0),
+            "is_selected": course.id in selected_ids,
+            "schedule_count": len(course.schedules),
+        }
+        if include_schedules:
+            item["schedules"] = serialize_course_schedules(list(course.schedules))
+        items.append(item)
     return items
 
 
@@ -90,7 +98,7 @@ def list_courses(
 ):
     stmt = (
         select(Course)
-        .options(joinedload(Course.teacher).joinedload(Teacher.user), joinedload(Course.department))
+        .options(joinedload(Course.teacher).joinedload(Teacher.user), joinedload(Course.department), selectinload(Course.schedules))
         .order_by(Course.created_at.desc())
     )
     stmt = _apply_course_filters(stmt, keyword, status, term)
@@ -102,13 +110,13 @@ def list_courses(
 def get_course_detail(db: Session, course_id: int, current_user: User | None = None) -> dict:
     stmt = (
         select(Course)
-        .options(joinedload(Course.teacher).joinedload(Teacher.user), joinedload(Course.department))
+        .options(joinedload(Course.teacher).joinedload(Teacher.user), joinedload(Course.department), selectinload(Course.schedules))
         .where(Course.id == course_id)
     )
     course = db.scalar(stmt)
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="课程不存在")
-    item = _build_course_items(db, [course], current_user=current_user)[0]
+    item = _build_course_items(db, [course], current_user=current_user, include_schedules=True)[0]
     score_rows = db.execute(
         select(
             func.count(Enrollment.id),

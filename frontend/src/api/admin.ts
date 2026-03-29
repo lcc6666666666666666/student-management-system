@@ -1,6 +1,15 @@
 import request from './request'
 
-import type { AdminCourseStatsOverview, AdminProfile, CourseFormOption, CourseItem, PageData } from '@/types'
+import type {
+  AdminCourseStatsOverview,
+  AdminProfile,
+  AdminStudentCoursesResponse,
+  AdminStudentItem,
+  CourseFormOption,
+  CourseItem,
+  CourseScheduleItem,
+  PageData
+} from '@/types'
 
 export function fetchAdminProfileApi() {
   return request.get<never, AdminProfile>('/admins/me/profile')
@@ -27,5 +36,42 @@ export function fetchAdminCourseStatsApi() {
 }
 
 export function fetchCourseFormOptionsApi() {
-  return request.get<never, { teachers: CourseFormOption[]; departments: CourseFormOption[]; status_options: Array<{ label: string; value: string }> }>('/admins/options/course-form')
+  return request.get<
+    never,
+    { teachers: CourseFormOption[]; departments: CourseFormOption[]; status_options: Array<{ label: string; value: string }> }
+  >('/admins/options/course-form')
+}
+
+export function fetchAdminCourseSchedulesApi(courseId: number) {
+  return request.get<never, { course: { id: number; course_code: string; name: string; term: string }; items: CourseScheduleItem[] }>(
+    `/admins/courses/${courseId}/schedules`
+  )
+}
+
+export function createCourseScheduleApi(courseId: number, payload: Record<string, unknown>) {
+  return request.post(`/admins/courses/${courseId}/schedules`, payload)
+}
+
+export function updateCourseScheduleApi(scheduleId: number, payload: Record<string, unknown>) {
+  return request.put(`/admins/course-schedules/${scheduleId}`, payload)
+}
+
+export function deleteCourseScheduleApi(scheduleId: number) {
+  return request.delete(`/admins/course-schedules/${scheduleId}`)
+}
+
+export function fetchAdminStudentsApi(params: Record<string, unknown>) {
+  return request.get<never, PageData<AdminStudentItem>>('/admins/students', { params })
+}
+
+export function fetchAdminStudentCoursesApi(studentId: number) {
+  return request.get<never, AdminStudentCoursesResponse>(`/admins/students/${studentId}/courses`)
+}
+
+export function assignStudentCourseApi(studentId: number, courseId: number) {
+  return request.post(`/admins/students/${studentId}/courses/${courseId}`)
+}
+
+export function dropStudentCourseApi(studentId: number, courseId: number) {
+  return request.delete(`/admins/students/${studentId}/courses/${courseId}`)
 }

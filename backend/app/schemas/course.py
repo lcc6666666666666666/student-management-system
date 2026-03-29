@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class CourseBase(BaseModel):
@@ -21,4 +21,29 @@ class CourseCreate(CourseBase):
 
 
 class CourseUpdate(CourseBase):
+    pass
+
+
+class CourseScheduleBase(BaseModel):
+    weekday: int = Field(..., ge=1, le=7)
+    start_section: int = Field(..., ge=1, le=20)
+    end_section: int = Field(..., ge=1, le=20)
+    start_week: int = Field(..., ge=1, le=30)
+    end_week: int = Field(..., ge=1, le=30)
+    location: str = Field(..., min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def validate_ranges(self):
+        if self.start_section > self.end_section:
+            raise ValueError("开始节次不能大于结束节次")
+        if self.start_week > self.end_week:
+            raise ValueError("起始周不能大于结束周")
+        return self
+
+
+class CourseScheduleCreate(CourseScheduleBase):
+    pass
+
+
+class CourseScheduleUpdate(CourseScheduleBase):
     pass

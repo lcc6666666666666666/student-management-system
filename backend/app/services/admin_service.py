@@ -1,14 +1,18 @@
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.admin import Admin
 from app.models.course import Course
 from app.models.department import Department
 from app.models.enrollment import Enrollment
+from app.models.student import Student
 from app.models.teacher import Teacher
+from app.models.user import User
 from app.schemas.course import CourseCreate, CourseUpdate
 from app.services.course_service import list_courses
+from app.services.enrollment_service import assign_course_by_admin, drop_course_by_admin
+from app.services.student_service import _get_student_by_id, list_student_courses_by_student_id
 
 
 def _get_admin_by_user_id(db: Session, user_id: int) -> Admin:
@@ -41,6 +45,79 @@ def get_admin_profile(db: Session, user_id: int) -> dict:
         "admin_no": admin.admin_no,
         "level": admin.level,
     }
+
+
+def list_students_for_admin(db: Session, page: int, page_size: int, keyword: str | None) -> dict:
+    stmt = (
+        select(Student)
+        .join(User, User.id == Student.user_id)
+        .options(joinedload(Student.user), joinedload(Student.department))
+        .order_by(Student.id.asc())
+    )
+    if keyword:
+        like_keyword = f"%{keyword.strip()}%"
+        stmt = stmt.where(
+            or_(
+                Student.student_no.like(like_keyword),
+                User.real_name.like(like_keyword),
+                User.username.like(like_keyword),
+            )
+        )
+
+    total = db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    students = db.scalars(stmt.offset((page - 1) * page_size).limit(page_size)).unique().all()
+
+    selected_map = {}
+    student_ids = [student.id for student in students]
+    if student_ids:
+        rows = db.execute(
+            select(Enrollment.student_id, func.count(Enrollment.id))
+            .where(Enrollment.student_id.in_(student_ids))
+            .group_by(Enrollment.student_id)
+        ).all()
+        selected_map = {row[0]: int(row[1]) for row in rows}
+
+    items = [
+        {
+            "id": student.id,
+            "user_id": student.user_id,
+            "student_no": student.student_no,
+            "username": student.user.username,
+            "real_name": student.user.real_name,
+            "grade": student.grade,
+            "class_name": student.class_name,
+            "department_name": student.department.name if student.department else None,
+            "selected_course_count": selected_map.get(student.id, 0),
+        }
+        for student in students
+    ]
+    return {"total": total, "page": page, "page_size": page_size, "items": items}
+
+
+def get_student_courses_for_admin(db: Session, student_id: int) -> dict:
+    student = _get_student_by_id(db, student_id)
+    course_data = list_student_courses_by_student_id(db, student.id)
+    return {
+        "student": {
+            "id": student.id,
+            "student_no": student.student_no,
+            "real_name": student.user.real_name,
+            "username": student.user.username,
+            "grade": student.grade,
+            "class_name": student.class_name,
+            "department_name": student.department.name if student.department else None,
+        },
+        "total": course_data["total"],
+        "items": course_data["items"],
+    }
+
+
+def assign_course_to_student_by_admin(db: Session, operator_user_id: int, student_id: int, course_id: int) -> dict:
+    return assign_course_by_admin(db, operator_user_id, student_id, course_id)
+
+
+def drop_course_from_student_by_admin(db: Session, operator_user_id: int, student_id: int, course_id: int) -> dict:
+    return drop_course_by_admin(db, operator_user_id, student_id, course_id)
 
 
 def list_courses_for_admin(

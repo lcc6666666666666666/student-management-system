@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 import AppLayout from '@/layout/AppLayout.vue'
-import { useAuthStore } from '@/store/auth'
 import { pinia } from '@/store'
+import { useAuthStore } from '@/store/auth'
 
 const appChildren: RouteRecordRaw[] = [
   {
@@ -30,6 +30,12 @@ const appChildren: RouteRecordRaw[] = [
     meta: { title: '我的课程', roles: ['student'], menu: true, icon: 'Notebook' }
   },
   {
+    path: '/student/timetable',
+    name: 'student-timetable',
+    component: () => import('@/views/student/TimetableView.vue'),
+    meta: { title: '我的课表', roles: ['student'], menu: true, icon: 'Calendar' }
+  },
+  {
     path: '/student/grades',
     name: 'student-grades',
     component: () => import('@/views/student/MyGradesView.vue'),
@@ -52,6 +58,12 @@ const appChildren: RouteRecordRaw[] = [
     name: 'admin-courses',
     component: () => import('@/views/admin/CourseManagementView.vue'),
     meta: { title: '课程管理', roles: ['admin'], menu: true, icon: 'Management' }
+  },
+  {
+    path: '/admin/enrollments',
+    name: 'admin-enrollments',
+    component: () => import('@/views/admin/AdminEnrollmentManageView.vue'),
+    meta: { title: '代选课管理', roles: ['admin'], menu: true, icon: 'User' }
   }
 ]
 
